@@ -6,7 +6,7 @@ from numpy.lib.index_tricks import fill_diagonal
 from matplotlib.pyplot import imshow,show
 import numpy as np
 import warnings
-from sklearn import cross_validation
+#from sklearn import cross_validation
 from tools.GenericTests import GenericTests
 
 class Kernel(object):
