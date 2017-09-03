@@ -57,10 +57,10 @@ ar_tt,ar_statn_tt,entro_tt,entro_tt_label = dg.sam_gen(alpha_tt,l_tt,n_tt,sigma0
 #  
 # #define grid 
 np.random.seed()
-theta_sml_grid = np.random.uniform(0,20,5)
-theta_bag_grid = np.random.uniform(0,20,5)
-lmba_grid = 10.0**(np.arange(-8,2,2))
-NumFolds = 2
+theta_sml_grid = np.random.uniform(0,20,15)
+theta_bag_grid = np.random.uniform(0,20,15)
+lmba_grid = 10.0**(np.arange(-8,2,1))
+NumFolds = 5
 n_bag = 5
    
 rmse_hat,aver_hat,par_xv_hat = kts.xval_disRe(theta_sml_grid,theta_bag_grid,lmba_grid,n_bag,ar_tr,entro_tr_label,NumFolds)
