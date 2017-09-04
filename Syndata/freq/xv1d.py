@@ -43,6 +43,8 @@ alpha_tt = np.random.uniform(-0.99,0.99,l_tt)
  
 ar_tr,ar_statn_tr,entro_tr,entro_tr_label = dg.sam_gen(alpha_tr,l_tr,n_tr,sigma0,sigma_label)
 ar_tt,ar_statn_tt,entro_tt,entro_tt_label = dg.sam_gen(alpha_tt,l_tt,n_tt,sigma0,sigma_label)
+
+
 ### 2d data
  
 #eigenvalue for trasition matrix in ar 1 process 2d
@@ -110,24 +112,3 @@ err_ybar = np.sqrt(np.mean((prdt_ybar-entro_tt_label)**2))
 
 print err_hat
 print err_statn
-
-
-
-
-
-
- 
-# # #plot
-fig = plt.figure()
-# # #                        
-axes = plt.gca()
-  
-alpha_index = np.argsort(alpha_tt)
-plt.plot(alpha_tt[alpha_index],entro_tt[alpha_index],c = 'k',label = 'True Entropy')
-plt.plot(alpha_tt[alpha_index],prdt_hat[alpha_index],color = "b",linestyle = "-.",marker = ".",label = 'No Correction')
-plt.plot(alpha_tt[alpha_index],prdt_statn[alpha_index],c='g',linestyle = "-.",label = "Stationary  Model")
-plt.plot(alpha_tt[alpha_index],np.repeat(prdt_ybar,len(alpha_tt)),color='y',linestyle = "-.",label = "Sample Mean")
-plt.xlabel("rho")
-plt.ylabel("True Entropy")
-plt.savefig("model comp1.pdf")
-plt.show() 
