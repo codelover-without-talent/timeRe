@@ -92,5 +92,37 @@ def sam2d_gen(lmbda1,lmbda2,l,num,sigma_2d,sigma0):
    
        
     return alpha,ar_sam,ar_statn_sam, entro_sam,entro_sam_var
-   
+#########
+# draw samples from a high dimensional multivariate normal
+
+#define the covariance matrix for the high dimensional gaussian distribution   
+def multi_cov(n,rho,sigma):
+    mat_cov = np.eye(n)
+    for ii in np.arange(n):
+        for jj in np.arange(n):
+            if ii-jj != 0:
+                mat_cov[ii,jj] = rho**abs(ii-jj)
+    return sigma**2 * mat_cov
+
+def cor_sample(n,rho,sigma):
+	cov = multi_cov(n,rho,sigma)
+	sample = np.random.multivariate_normal(np.zeros(n),cov)
+	
+	return sample
+
+def cor_sample_gen(l,n,sigma,rho,sigma_label):
+	samples = list()
+	samples_statn = list()
+	entro = np.ones(l)*0.5 * np.log(2*np.pi*np.e*sigma)
+	entro_label = np.zeros(l)
+	
+	
+	for ii in np.arange(l):
+		sample = cor_sample(n,rho[ii],sigma[ii]).reshape((n,1))
+		sample_statn = np.random.normal(0,sigma[ii],n).reshape((n,1))
+		entro_label[ii] = entro[ii] + np.random.normal(0,sigma_label,1)
+		
+		samples.append(sample)
+		samples_statn.append(sample_statn)
+	return rho,samples,samples_statn,entro,entro_label
 

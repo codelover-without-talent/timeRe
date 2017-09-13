@@ -79,8 +79,9 @@ def autocov(theta,X,Y):
 # compute effective variance of a given time series
 def var_ts(theta,X,m):
     """
-    we are computing the variance for the time series for each bag,
+    we are computing the variance for the time series for one bag,
     here theta is the parameter for the kernel,
+	X is the one bag of samples
     m is the size of the number of z points we use
     """
     n = X.shape[0]
@@ -198,7 +199,24 @@ def emp_ebeding2(theta,X,Z):
     
        
 # define the function to compute the corrected mean embedding and covariance for one bag        
-def data_cor(theta,eta,X,Z):
+def data_cor1(theta,eta,X,Z):
+    """
+    X is the data points for one bag
+    Z is the landmark points
+    """
+    m = Z.shape[0]
+    
+    ri = smooth_sqkernel(theta, eta, Z)
+    vari = var_ts(theta,X,m)
+    mu_hati = emp_ebeding1(theta,X,Z)
+    
+    invi = np.linalg.inv(ri + vari)
+    
+    mu_bari = ri.dot(invi).dot(mu_hati)
+    sigma_mui = ri - ri.dot(invi).dot(ri)
+    
+    return mu_bari,sigma_mui
+def data_cor2(theta,eta,X,Z):
     """
     X is the data points for one bag
     Z is the landmark points
@@ -232,7 +250,7 @@ def pln_ebeding(theta,X,Z):
 
 
     
-def bag_cor(theta,eta,X,Z):
+def bag_cor1(theta,eta,X,Z):
    
     """
     computing the correlation corrected mean and variance for every bag 
@@ -248,12 +266,32 @@ def bag_cor(theta,eta,X,Z):
     for ii in np.arange(n):
         xx = X[ii]
         
-        mu_bari,sigma_mui = data_cor(theta,eta,xx,Z)
+        mu_bari,sigma_mui = data_cor1(theta,eta,xx,Z)
         
         mu_bar[ii,:] = mu_bari
         sigma_mu.append(sigma_mui)
     return mu_bar, sigma_mu
-
+def bag_cor2(theta,eta,X,Z):
+   
+    """
+    computing the correlation corrected mean and variance for every bag 
+    """
+    
+    
+    n = len(X)
+    m = Z.shape[0]
+    
+    mu_bar = np.zeros((n,m))
+    sigma_mu = list()
+    
+    for ii in np.arange(n):
+        xx = X[ii]
+        
+        mu_bari,sigma_mui = data_cor2(theta,eta,xx,Z)
+        
+        mu_bar[ii,:] = mu_bari
+        sigma_mu.append(sigma_mui)
+    return mu_bar, sigma_mu
 
 # # define the function to perform newton raphson
 # 
@@ -433,15 +471,30 @@ def disRe(par,lnd_cho,X,Y,Xtst=None,Ytst = None):
 	return beta,prdt,np.sqrt(mse)
 
 
-def disRe_corc(par,eta,lnd_cho,X,Y,Xtst = None,Ytst = None):
-	mu_tr,sigma_tr = bag_cor(par[0],eta,X,lnd_cho)
+def disRe_corc1(par,eta,lnd_cho,X,Y,Xtst = None,Ytst = None):
+	mu_tr,sigma_tr = bag_cor1(par[0],eta,X,lnd_cho)
 
 	kernel = GaussianKernel(float(par[1]))
 	if Xtst is None:
 		beta = kernel.ridge_regress(mu_tr,Y,par[2])
 
 	else:
-		mu_tt,sigma_tt = bag_cor(par[0],eta,Xtst,lnd_cho)
+		mu_tt,sigma_tt = bag_cor1(par[0],eta,Xtst,lnd_cho)
+		if Ytst is None:
+			beta,prdt = kernel.ridge_regress(mu_tr,Y,par[2],mu_tt)
+		else:
+			beta,prdt,mse = kernel.ridge_regress(mu_tr,Y,par[2],mu_tt,Ytst)
+	return beta,prdt,np.sqrt(mse)
+
+def disRe_corc2(par,eta,lnd_cho,X,Y,Xtst = None,Ytst = None):
+	mu_tr,sigma_tr = bag_cor2(par[0],eta,X,lnd_cho)
+
+	kernel = GaussianKernel(float(par[1]))
+	if Xtst is None:
+		beta = kernel.ridge_regress(mu_tr,Y,par[2])
+
+	else:
+		mu_tt,sigma_tt = bag_cor2(par[0],eta,Xtst,lnd_cho)
 		if Ytst is None:
 			beta,prdt = kernel.ridge_regress(mu_tr,Y,par[2],mu_tt)
 		else:
@@ -450,14 +503,11 @@ def disRe_corc(par,eta,lnd_cho,X,Y,Xtst = None,Ytst = None):
 	
 
 
-def xval_disRe(theta_sml_grid,theta_bag_grid,lmba_grid,n_bag,X,Y,NumFolds):
+def xval_disRe(par,n_bag,X,Y,NumFolds):
 	train_x,train_y,test_x, test_y = tr_tst_split(X,Y,NumFolds)
 	
-	par_grid = list(itertools.product(theta_sml_grid,theta_bag_grid,lmba_grid))
 	
-	l_grid = len(par_grid)
-	
-	rmse_matrix = np.zeros((NumFolds,l_grid))
+	rmse_matrix = np.zeros(NumFolds)
 	
 	for ii in np.arange(NumFolds):
 		x_tr = train_x[ii]
@@ -465,43 +515,44 @@ def xval_disRe(theta_sml_grid,theta_bag_grid,lmba_grid,n_bag,X,Y,NumFolds):
 		x_tt = test_x[ii]
 		y_tt = test_y[ii]
 		lnd = lnd_choe(n_bag,x_tr)
-		for jj in np.arange(l_grid):
-			par = par_grid[jj]
-			_,_,rmse_matrix[ii,jj] = disRe(par,lnd,x_tr,y_tr,x_tt,y_tt)
-	aver_rmse = np.mean(rmse_matrix,0)
-	pos = np.argmin(aver_rmse)
-	
-	return rmse_matrix,aver_rmse,par_grid[pos]
+		_,_,rmse_matrix[ii] = disRe(par,lnd,x_tr,y_tr,x_tt,y_tt)
+	aver_rmse = np.mean(rmse_matrix)
+	rmse_dict = {aver_rmse:par}
+	return rmse_dict
 			
+def xval_disRe_corc1(par,eta,n_bag,X,Y,NumFolds):
+	train_x,train_y,test_x, test_y = tr_tst_split(X,Y,NumFolds)
+	
+	rmse_matrix = np.zeros(NumFolds)
+	
+	for ii in np.arange(NumFolds):
+		x_tr = train_x[ii]
+		y_tr = train_y[ii]
+		x_tt = test_x[ii]
+		y_tt = test_y[ii]
+		lnd = lnd_choe(n_bag,x_tr)
+		_,_,rmse_matrix[ii] = disRe_corc1(par,eta,lnd,x_tr,y_tr,x_tt,y_tt)
+	aver_rmse = np.mean(rmse_matrix)
+	rmse_dict = {aver_rmse:par}
+	return rmse_dict
 			
+def xval_disRe_corc2(par,eta,n_bag,X,Y,NumFolds):
+	train_x,train_y,test_x, test_y = tr_tst_split(X,Y,NumFolds)
+	
+	rmse_matrix = np.zeros(NumFolds)
+	
+	for ii in np.arange(NumFolds):
+		x_tr = train_x[ii]
+		y_tr = train_y[ii]
+		x_tt = test_x[ii]
+		y_tt = test_y[ii]
+		lnd = lnd_choe(n_bag,x_tr)
+		_,_,rmse_matrix[ii] = disRe_corc2(par,eta,lnd,x_tr,y_tr,x_tt,y_tt)
+	aver_rmse = np.mean(rmse_matrix)
+	rmse_dict = {aver_rmse:par}
+	return rmse_dict
 	
 	
 	
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	
 
