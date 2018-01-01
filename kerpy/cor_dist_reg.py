@@ -385,7 +385,7 @@ def emp_gaussian_xval(par,lnd_mk,X,Y,NumFolds):
     
     rmse_vec = np.zeros(NumFolds)
     
-    kernel = GaussianKernel(bag_theta)
+    kernel = GaussianKernel(float(bag_theta))
     for ii in np.arange(NumFolds):
         train_xx = train_x[ii]
         train_yy = train_y[ii]
@@ -410,7 +410,7 @@ def shrin_gaussian_xval(par,lnd_mk,X,Y,NumFolds):
     lmbda = par[3]
     
     rmse_vec = np.zeros(NumFolds)
-    kernel = GaussianKernel(bag_theta)
+    kernel = GaussianKernel(float(bag_theta))
     for ii in np.arange(NumFolds):
         train_xx = train_x[ii]
         train_yy = train_y[ii]
