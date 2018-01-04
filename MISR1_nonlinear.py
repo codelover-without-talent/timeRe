@@ -132,7 +132,7 @@ samp_lnd_chic = samp_train[:lnd_bag_num]
 
 lnd_mk_den0 = kdr.lnd_choe(lnd_bag_xval0,samp_lnd_chic)
 
-processes = 20
+processes = 50
 
 
 
