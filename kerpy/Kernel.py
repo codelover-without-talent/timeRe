@@ -130,7 +130,7 @@ class Kernel(object):
             if ytst is None:
                 return bb,ypre
             else:
-                return bb,ypre,mean(linalg.norm(ytst-ypre)**2)/len(ytst)
+                return bb,ypre,linalg.norm(ytst-ypre)**2/len(ytst)
     
     @abstractmethod
     def xvalidate( self,X,y, method = 'ridge_regress',  \

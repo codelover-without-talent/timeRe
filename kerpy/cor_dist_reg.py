@@ -231,48 +231,70 @@ def dist_reg(X,Y,lmbda,xtst=None,ytst=None):
 
 
 # # define the function to perform newton raphson 
-def beta_update(obs,mu_bar,sigma_mu,beta):
+def beta_update(obs,mu_bar,sigma_mu,beta,sigma_ini):
     n = len(obs)
     m = mu_bar.shape[1]
-     
-    Yi = obs-mu_bar.dot(beta)
+    # number of iterations for estimating sigma
+    n0 = 100
+    
     sigmai0 = beta.dot(sigma_mu).dot(beta)
-    #print sigmai0[2]
-    sigma_max = 2*np.amax(sigmai0)
-    sigma_xi = np.sqrt(sigma_max-sigmai0)
-    Xi = np.random.normal(0,sigma_xi)
-    #print Xi 
-    Zi = Xi + Yi
-    sigma_hat = np.mean(Zi**2)-sigma_max
-    #print sigma_hat 
+    sigma_estimate = [sigma_ini]
+    for ii in np.arange(n0):
+        dsigma = 0
+        Isigma = 0
+        sigma0 = sigma_estimate[ii]
+    
+        for jj in np.arange(n):
+            dsigmaj = 0.5 * ((obs[jj]-mu_bar[jj,:].dot(beta))**2/(sigmai0[jj]+sigma0)**2-1/(sigmai0[jj]+sigma0))
+            Isigmaj = 0.5*(1/(sigmai0[jj]+sigma0)**2- 2*(obs[jj]-mu_bar[jj,:].dot(beta))**2/(sigmai0[jj]+sigma0)**3)
+            dsigma = dsigma+dsigmaj
+            Isigma = Isigma + Isigmaj
+        sigma1 = sigma0+0.01*dsigma#/Isigma
+        sigma_estimate.append(sigma1)    
+    sigma_hat = sigma_estimate[n0-1]
+    print sigma_hat 
+#     Yi = obs-mu_bar.dot(beta)
+#     #print Yi
+#     sigmai0 = beta.dot(sigma_mu).dot(beta)
+#     #print sigmai0
+#     sigma_max = np.amax(sigmai0)
+#     #print sigma_max
+#     sigma_xi = np.sqrt(sigma_max-sigmai0)
+#     #print sigma_xi
+#     Xi = np.random.normal(0,sigma_xi)
+#     #print Xi 
+#     Zi = Xi + Yi
+#     #print Zi
+#     sigma_hat = np.mean(Zi**2)-sigma_max
+#     print sigma_hat 
         
     dbeta = np.zeros(m)
     Ibeta = np.zeros((m,m))
     for jj in np.arange(n):
         sigmaj = sigmai0[jj]+sigma_hat
-        dbetaj = (obs[jj]-beta.dot(mu_bar[jj,:]))/sigmaj * mu_bar[jj,:]+(obs[jj]-beta.dot(mu_bar[jj,:]))**2/(sigmaj**2)*(sigma_mu[jj].dot(beta))-(sigma_mu[jj].dot(beta))/sigmaj
+        dbetaj = (obs[jj]-mu_bar[jj,:].dot(beta))/sigmaj * mu_bar[jj,:]+(obs[jj]-mu_bar[jj,:].dot(beta))**2/(sigmaj**2)*(sigma_mu[jj].dot(beta))-(sigma_mu[jj].dot(beta))/sigmaj
         Ibetaj = np.outer(mu_bar[jj,:],mu_bar[jj,:])/sigmaj + 2*sigma_mu[jj].dot(np.outer(beta,beta)).dot(sigma_mu[jj])/sigmaj**2
         dbeta = dbeta + dbetaj
         Ibeta = Ibeta + Ibetaj
-    print np.linalg.solve(Ibeta,dbeta)
-    beta_new = beta - np.linalg.solve(Ibeta+0.01*np.eye(m),dbeta)  #  0.05*dbeta
+    print Ibeta
+    beta_new = beta + 0.1*dbeta   #np.linalg.solve(Ibeta,dbeta) 
      
-    Yi_new = obs-mu_bar.dot(beta_new)
-    sigmai0_new = beta_new.dot(sigma_mu).dot(beta_new)
-    sigma_max_new = 2*np.amax(sigmai0_new)
-    sigma_xi_new = np.sqrt(sigma_max_new-sigmai0_new)
-    Xi_new = np.random.normal(0,sigma_xi_new) 
-    Zi_new = Xi_new + Yi_new
-    sigma_hat_new = np.mean(Zi_new**2)-sigma_max_new
-    
+#     Yi_new = obs-mu_bar.dot(beta_new)
+#     sigmai0_new = beta_new.dot(sigma_mu).dot(beta_new)
+#     sigma_max_new = 2*np.amax(sigmai0_new)
+#     sigma_xi_new = np.sqrt(sigma_max_new-sigmai0_new)
+#     Xi_new = np.random.normal(0,sigma_xi_new) 
+#     Zi_new = Xi_new + Yi_new
+#     sigma_hat_new = np.mean(Zi_new**2)-sigma_max_new
+#     print sigma_hat_new
       
     lkd = 0
     for jj in np.arange(n):
-        sigmaj_new = sigmai0_new[jj]+sigma_hat_new
+        sigmaj_new = sigmai0[jj]+sigma_hat
         lkd0 = -0.5*((obs[jj]-beta_new.dot(mu_bar[jj,:]))**2/ sigmaj_new + np.log(sigmaj_new))
         lkd = lkd + lkd0
     
-    return beta_new, lkd
+    return beta_new, sigma_hat,lkd
 
 
 
@@ -380,8 +402,8 @@ def emp_gaussian_xval(par,lnd_mk,X,Y,NumFolds):
     
     prior_theta = par[0]
     data_theta = par[1]
-    bag_theta = par[2]
-    lmbda = par[3]
+    bag_theta = 20.085
+    lmbda = par[2]
     
     rmse_vec = np.zeros(NumFolds)
     
@@ -406,8 +428,8 @@ def shrin_gaussian_xval(par,lnd_mk,X,Y,NumFolds):
     
     prior_theta = par[0]
     data_theta = par[1]
-    bag_theta = par[2]
-    lmbda = par[3]
+    bag_theta = 2.718
+    lmbda = par[2]
     
     rmse_vec = np.zeros(NumFolds)
     kernel = GaussianKernel(float(bag_theta))

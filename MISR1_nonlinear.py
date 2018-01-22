@@ -113,10 +113,10 @@ def shrin_gaussian_xval_processes(processes,par_list,lnd_mk,X,Y,NumFolds):
 
 
 theta_data_grid = np.exp(-13+np.arange(25))
-theta_bag_grid = np.exp(-10+np.arange(25)) 
+#theta_bag_grid = np.exp(-10+np.arange(25)) 
 lmba_grid = np.exp(np.arange(-15,0,0.5))
  
-par_grid0 = list(itertools.product(theta_data_grid,theta_bag_grid,lmba_grid))
+par_grid0 = list(itertools.product(theta_data_grid,lmba_grid))
 
 
 for ii in np.arange(len(par_grid0)):
@@ -127,12 +127,12 @@ for ii in np.arange(len(par_grid0)):
 
 
 lnd_bag_xval0 = 2
-lnd_bag_num = 20
+lnd_bag_num = 50
 samp_lnd_chic = samp_train[:lnd_bag_num]
 
 lnd_mk_den0 = kdr.lnd_choe(lnd_bag_xval0,samp_lnd_chic)
-print lnd_mk_den0.shape
-processes = 25
+
+processes = 24
 
 
 
